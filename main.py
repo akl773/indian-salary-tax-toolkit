@@ -55,3 +55,27 @@ class IncomeTaxCalculator:
             "hra_exemption": hra_exemption,
             "total_deductions": total_deductions
         }
+
+    def calculate_tax(self, taxable_income, regime=None):
+        """Calculate income tax based on the specified regime."""
+        if regime is None:
+            regime = self.current_regime
+
+        slabs = self.old_regime_slabs if regime == 'old' else self.new_regime_slabs
+        tax = 0
+        prev_max = 0
+
+        for slab in slabs:
+            if taxable_income > slab['max']:
+                taxable_in_slab = slab['max'] - prev_max
+            else:
+                taxable_in_slab = max(0, taxable_income - prev_max)
+
+            tax += taxable_in_slab * slab['rate']
+
+            if taxable_income <= slab['max']:
+                break
+
+            prev_max = slab['max']
+
+        return tax
