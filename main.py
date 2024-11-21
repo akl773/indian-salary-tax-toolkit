@@ -79,3 +79,31 @@ class IncomeTaxCalculator:
             prev_max = slab['max']
 
         return tax
+
+    def calculate_net_salary(self, gross_salary_lakhs, regime=None):
+        """Calculate net take-home salary after tax."""
+        # Convert lakhs to actual value
+        gross_salary = gross_salary_lakhs * 100000
+
+        if regime is None:
+            regime = self.current_regime
+
+        if regime == 'old':
+            deductions = self.calculate_old_regime_deductions(gross_salary)
+            taxable_income = max(0, gross_salary - deductions['total_deductions'])
+        else:
+            deductions = {"total_deductions": 0}
+            taxable_income = gross_salary
+
+        tax = self.calculate_tax(taxable_income, regime)
+        net_salary = gross_salary - tax
+
+        return {
+            "gross_salary_lakhs": gross_salary_lakhs,
+            "deductions_lakhs": round(deductions['total_deductions'] / 100000, 2),
+            "taxable_income_lakhs": round(taxable_income / 100000, 2),
+            "tax_lakhs": round(tax / 100000, 2),
+            "net_salary_lakhs": round(net_salary / 100000, 2),
+            "monthly_take_home_lakhs": round(net_salary / 1200000, 2),
+            "deduction_details": deductions
+        }
