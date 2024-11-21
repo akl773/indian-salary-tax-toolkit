@@ -111,7 +111,6 @@ class IncomeTaxCalculator:
         return {
             **deductions,
             'optimal_rent': salary * optimal_rent_multiplier,
-            'rent_multiplier': optimal_rent_multiplier,
             'total_deductions': total_deductions
         }
 
