@@ -50,38 +50,71 @@ class IncomeTaxCalculator:
 
     @staticmethod
     def calculate_old_regime_deductions(salary: float):
-        """Calculate deductions for the Old Tax Regime."""
+        """
+        Calculate optimized deductions for the Old Tax Regime.
+
+        Args:
+            salary (float): Total annual salary
+
+        Returns:
+            dict: Deductions with optimized rent
+        """
+        # Precompute constant values
         basic_salary = salary * 0.5
         hra = salary * 0.4
-        rent_paid = salary * 0.5
 
-        section_80c = min(150000.0, basic_salary * 0.1)
-        section_80d_self = 25000
-        section_80d_parents = 50000
-        section_80d_health_checkup = 5000
+        deductions = {
+            'section_80c': min(150000.0, basic_salary * 0.1),
+            'section_80d_self': 25000,
+            'section_80d_parents': 50000,
+            'section_80d_health_checkup': 5000
+        }
 
-        hra_exemption = min(
-            hra,
-            basic_salary * 0.5,
-            rent_paid - (basic_salary * 0.1)
-        )
+        def calculate_hra_exemption(rent_multiplier):
+            """Calculate HRA exemption efficiently."""
+            rent_paid = salary * rent_multiplier
+            return min(
+                hra,
+                basic_salary * 0.5,
+                rent_paid - (basic_salary * 0.1)
+            )
 
-        total_deductions = (
-                section_80c +
-                section_80d_self +
-                section_80d_parents +
-                section_80d_health_checkup +
-                hra_exemption
-        )
+
+        def find_optimal_rent_multiplier(low=0.1, high=0.5, step=0.1):
+            """Find optimal rent multiplier using binary search strategy."""
+            best_multiplier = low
+            max_exemption = calculate_hra_exemption(low)
+
+            current = low + step
+            while current <= high:
+                current_exemption = calculate_hra_exemption(current)
+
+                # Prefer lower multiplier if exemptions are equal
+                if current_exemption > max_exemption or \
+                        (current_exemption == max_exemption and current < best_multiplier):
+                    max_exemption = current_exemption
+                    best_multiplier = current
+
+                current += step
+
+            return best_multiplier, max_exemption
+
+        # Find optimal rent details
+        optimal_rent_multiplier, hra_exemption = find_optimal_rent_multiplier()
+
+        # Add HRA exemption to deductions
+        deductions['hra_exemption'] = hra_exemption
+
+        # Calculate total deductions and add additional details
+        total_deductions = sum(deductions.values())
 
         return {
-            "section_80c": section_80c,
-            "section_80d_self": section_80d_self,
-            "section_80d_parents": section_80d_parents,
-            "section_80d_health_checkup": section_80d_health_checkup,
-            "hra_exemption": hra_exemption,
-            "total_deductions": total_deductions
+            **deductions,
+            'optimal_rent': salary * optimal_rent_multiplier,
+            'rent_multiplier': optimal_rent_multiplier,
+            'total_deductions': total_deductions
         }
+
 
     def calculate_net_salary(self, gross_salary_lakhs, regime=None):
         """Calculate net take-home salary after tax."""
