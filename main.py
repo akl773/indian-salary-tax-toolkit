@@ -107,3 +107,26 @@ class IncomeTaxCalculator:
             "monthly_take_home_lakhs": round(net_salary / 1200000, 2),
             "deduction_details": deductions
         }
+
+    def find_gross_salary_for_target_take_home(self, target_monthly_take_home_lakhs, regime=None):
+        """Find gross salary required to achieve target monthly take-home salary."""
+        if regime is None:
+            regime = self.current_regime
+
+        # Convert monthly take-home from lakhs to annual value
+        target_annual_take_home = target_monthly_take_home_lakhs * 12 * 100000
+
+        left, right = 1, 1000  # Search in lakhs
+
+        while right - left > 0.01:
+            mid = (left + right) / 2
+            result = self.calculate_net_salary(mid, regime)
+
+            annual_take_home = result['net_salary_lakhs'] * 100000
+
+            if annual_take_home < target_annual_take_home:
+                left = mid
+            else:
+                right = mid
+
+        return self.calculate_net_salary(right, regime)
