@@ -21,11 +21,13 @@ class IncomeTaxCalculator:
             {"max": float('inf'), "rate": 0.30}
         ]
 
+        self.cess_percentage = 0.04  # 4%
+
         # Current tax regime
         self.current_regime = 'old'
 
     def calculate_tax(self, taxable_income, regime=None):
-        """Calculate income tax based on the specified regime."""
+        """Calculate income tax based on the specified regime, including cess."""
         if regime is None:
             regime = self.current_regime
 
@@ -46,7 +48,11 @@ class IncomeTaxCalculator:
 
             prev_max = slab['max']
 
-        return tax
+        # Add cess to the tax
+        cess = tax * self.cess_percentage
+        total_tax = tax + cess
+
+        return total_tax
 
     @staticmethod
     def calculate_old_regime_deductions(salary: float):
@@ -180,7 +186,7 @@ class IncomeTaxCalculator:
         tax = self.calculate_tax(taxable_income, regime)
 
         # Add health and education cess (4%)
-        tax = tax * 1.04
+        tax = tax * (1 + self.cess_percentage)
 
         # Calculate final values in lakhs
         results = {
