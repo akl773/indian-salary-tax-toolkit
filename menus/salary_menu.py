@@ -18,4 +18,4 @@ class SalaryMenu:
         print("\n📊 Gross Salary Requirement:")
         for key, value in result.items():
             if key != 'deduction_details':
-                print(f"{key.replace('_', ' ').title()}: ₹{value} Lakhs")
+                print(f"{key.replace('_', ' ').title()}: ₹{round(value, 2)} Lakhs")

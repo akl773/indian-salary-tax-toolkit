@@ -65,3 +65,58 @@ class IncomeTaxCalculator:
             else:
                 right = mid
         return self.calculate_net_salary(right, regime)
+
+    def calculate_freelancer_tax(self, gross_receipts_lakhs, regime=None):
+        """
+        Calculate tax for freelancers under Section 44ADA.
+
+        Args:
+            gross_receipts_lakhs (float): Gross receipts in lakhs
+            regime (str, optional): Tax regime to use. Defaults to current regime if None
+
+        Returns:
+            dict: Dictionary containing tax calculation details in lakhs
+        """
+        if regime is None:
+            regime = self.current_regime
+
+        # Convert lakhs to actual value
+        gross_receipts = gross_receipts_lakhs * 100000.0
+
+        # Under 44ADA, 50% is considered as expense deduction
+        presumptive_income = gross_receipts * 0.5
+
+        # Calculate deductions based on actual limits
+        deductions = {
+            'section_80c': 150000.0,
+            'section_80d_self': min(25000.0, presumptive_income),
+            'section_80d_parents': 50000.0,
+            'section_80d_health_checkup': 5000.0,
+            'hra': 60000.0
+        }
+
+        # Calculate total deductions
+        total_deductions = sum(deductions.values())
+
+        # Apply deductions to presumptive income
+        taxable_income = max(0.0, presumptive_income - total_deductions)
+
+        # Calculate tax on taxable income
+        tax = self.calculate_tax(taxable_income, regime)
+
+        # Add health and education cess (4%)
+        tax = tax * (1 + self.cess_percentage)
+
+        # Calculate final values in lakhs
+        results = {
+            "gross_receipts_lakhs": round(gross_receipts_lakhs, 2),
+            "presumptive_income_lakhs": round(presumptive_income / 100000, 2),
+            "total_deductions_lakhs": round(total_deductions / 100000, 2),
+            "taxable_income_lakhs": round(taxable_income / 100000, 2),
+            "tax_lakhs": round(tax / 100000, 2),
+            "net_income_lakhs": round((gross_receipts - tax) / 100000, 2),
+            "monthly_take_home_lakhs": round((gross_receipts - tax) / 1200000, 2),
+            "expense_deduction_lakhs": round(gross_receipts * 0.5 / 100000, 2)
+        }
+
+        return results
