@@ -40,8 +40,8 @@ class IncomeTaxCalculator:
             ]),
             TaxRegime.NEW: TaxSlabCollection([
                 TaxSlab(Decimal('300000'), Decimal('0')),
-                TaxSlab(Decimal('700000'), Decimal('0.05')),
-                TaxSlab(Decimal('1000000'), Decimal('0.10')),
+                TaxSlab(Decimal('600000'), Decimal('0.05')),
+                TaxSlab(Decimal('900000'), Decimal('0.10')),
                 TaxSlab(Decimal('1200000'), Decimal('0.15')),
                 TaxSlab(Decimal('1500000'), Decimal('0.20')),
                 TaxSlab(Decimal('Infinity'), Decimal('0.30'))
@@ -56,11 +56,11 @@ class IncomeTaxCalculator:
     def calculate_tax(self, taxable_income: Decimal, regime: TaxRegime | None = None) -> Decimal:
         """
         Calculate tax based on taxable income and regime.
-        
+
         Args:
             taxable_income: Income amount to calculate tax on
             regime: Tax regime to use (defaults to current regime if None)
-            
+
         Returns:
             Total tax including cess
         """
@@ -93,11 +93,11 @@ class IncomeTaxCalculator:
     ) -> dict:
         """
         Calculate net salary after tax deductions.
-        
+
         Args:
             gross_salary_lakhs: Gross salary in lakhs
             regime: Tax regime to use (defaults to current regime if None)
-            
+
         Returns:
             Dictionary containing calculation details
         """
@@ -105,12 +105,38 @@ class IncomeTaxCalculator:
         gross_salary = gross_salary_lakhs * Decimal('100000')
         regime = regime or self.current_regime
 
-        taxable_income = gross_salary
+        # Calculate basic salary (50% of gross salary)
+        basic_salary = gross_salary * Decimal('0.5')
+
+        # Calculate PF (12% of basic salary)
+        # Employee + Employer contribution
+        pf = (basic_salary * Decimal('0.12')) * 2
+
+        # Deductions
+        deductions = Decimal('0')
+        section_80c_deduction = Decimal('0')
+        standard_deduction = Decimal('50000')  # Standard deduction allowed in both regimes
+
+        if regime == TaxRegime.OLD:
+            # PF contribution under section 80C (up to ₹1.5 lakh)
+            section_80c_deduction = min(pf, Decimal('150000'))
+        # Total deductions
+        deductions = section_80c_deduction + standard_deduction
+
+        # Calculate taxable income
+        taxable_income = gross_salary - deductions
+
+        # Calculate tax
         tax = self.calculate_tax(taxable_income, regime)
-        net_salary = gross_salary - tax
+
+        # Calculate net salary
+        net_salary = gross_salary - pf - tax
 
         return {
             "gross_salary_lakhs": gross_salary_lakhs,
+            "basic_salary_lakhs": round(basic_salary / Decimal('100000'), 2),
+            "pf_lakhs": round(pf / Decimal('100000'), 2),
+            "deductions_lakhs": round(deductions / Decimal('100000'), 2),
             "taxable_income_lakhs": round(taxable_income / Decimal('100000'), 2),
             "tax_lakhs": round(tax / Decimal('100000'), 2),
             "net_salary_lakhs": round(net_salary / Decimal('100000'), 2),
@@ -124,11 +150,11 @@ class IncomeTaxCalculator:
     ) -> dict:
         """
         Find required gross salary for desired monthly take-home salary.
-        
+
         Args:
             target_monthly_take_home_lakhs: Desired monthly take-home salary in lakhs
             regime: Tax regime to use (defaults to current regime if None)
-            
+
         Returns:
             Dictionary with required gross salary details
         """
@@ -156,11 +182,11 @@ class IncomeTaxCalculator:
     ) -> dict:
         """
         Calculate tax for freelancers under Section 44ADA.
-        
+
         Args:
             gross_receipts_lakhs: Gross receipts in lakhs
             regime: Tax regime to use (defaults to current regime if None)
-            
+
         Returns:
             Dictionary containing calculation details
         """
@@ -177,7 +203,8 @@ class IncomeTaxCalculator:
             'section_80d_self': min(Decimal('25000'), presumptive_income),
             'section_80d_parents': Decimal('50000'),
             'section_80d_health_checkup': Decimal('5000'),
-            'hra': Decimal('60000')
+            'hra': Decimal('60000'),
+            'standard_deduction': Decimal('50000')
         }
 
         total_deductions = sum(deductions.values())
