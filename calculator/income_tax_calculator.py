@@ -108,20 +108,31 @@ class IncomeTaxCalculator:
         # Calculate basic salary (50% of gross salary)
         basic_salary = gross_salary * Decimal('0.5')
 
-        # Calculate PF (12% of basic salary)
-        # Employee + Employer contribution
-        pf = (basic_salary * Decimal('0.12')) * 2
+        # Calculate HRA component (Assuming HRA is 50% of basic salary)
+        hra = basic_salary * Decimal('0.4')
+
+        # Calculate employee's PF contribution (12% of basic salary)
+        employee_pf = basic_salary * Decimal('0.12')
+
+        # Calculate employer's PF contribution (12% of basic salary)
+        employer_pf = basic_salary * Decimal('0.12')
 
         # Deductions
-        deductions = Decimal('0')
-        section_80c_deduction = Decimal('0')
         standard_deduction = Decimal('50000')  # Standard deduction allowed in both regimes
 
         if regime == TaxRegime.OLD:
             # PF contribution under section 80C (up to ₹1.5 lakh)
-            section_80c_deduction = min(pf, Decimal('150000'))
-        # Total deductions
-        deductions = section_80c_deduction + standard_deduction
+            section_80c_deduction = min(employee_pf, Decimal('150000'))
+
+            # HRA exemption calculation
+            # Assuming maximum HRA exemption (rent paid is high enough)
+            hra_exemption = hra  # Since we're assuming the maximum possible exemption
+
+            # Total deductions
+            deductions = standard_deduction + section_80c_deduction + hra_exemption
+        else:
+            # In the new regime, only standard deduction is allowed
+            deductions = standard_deduction
 
         # Calculate taxable income
         taxable_income = gross_salary - deductions
@@ -129,13 +140,15 @@ class IncomeTaxCalculator:
         # Calculate tax
         tax = self.calculate_tax(taxable_income, regime)
 
-        # Calculate net salary
-        net_salary = gross_salary - pf - tax
+        # Calculate net salary (only employee's PF is deducted from net salary)
+        net_salary = gross_salary - employee_pf - tax
 
         return {
             "gross_salary_lakhs": gross_salary_lakhs,
             "basic_salary_lakhs": round(basic_salary / Decimal('100000'), 2),
-            "pf_lakhs": round(pf / Decimal('100000'), 2),
+            "hra_lakhs": round(hra / Decimal('100000'), 2),
+            "employee_pf_lakhs": round(employee_pf / Decimal('100000'), 2),
+            "employer_pf_lakhs": round(employer_pf / Decimal('100000'), 2),
             "deductions_lakhs": round(deductions / Decimal('100000'), 2),
             "taxable_income_lakhs": round(taxable_income / Decimal('100000'), 2),
             "tax_lakhs": round(tax / Decimal('100000'), 2),
