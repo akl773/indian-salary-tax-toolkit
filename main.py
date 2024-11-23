@@ -64,7 +64,7 @@ class IncomeTaxCalculator:
         hra = salary * 0.4
 
         deductions = {
-            'section_80c': min(150000.0, basic_salary * 0.1),
+            'section_80c': min(150000.0, basic_salary),
             'section_80d_self': 25000,
             'section_80d_parents': 50000,
             'section_80d_health_checkup': 5000
@@ -78,7 +78,6 @@ class IncomeTaxCalculator:
                 basic_salary * 0.5,
                 rent_paid - (basic_salary * 0.1)
             )
-
 
         def find_optimal_rent_multiplier(low=0.1, high=0.5, step=0.1):
             """Find optimal rent multiplier using binary search strategy."""
@@ -114,7 +113,6 @@ class IncomeTaxCalculator:
             'total_deductions': total_deductions
         }
 
-
     def calculate_net_salary(self, gross_salary_lakhs, regime=None):
         """Calculate net take-home salary after tax."""
         # Convert lakhs to actual value
@@ -142,6 +140,61 @@ class IncomeTaxCalculator:
             "monthly_take_home_lakhs": round(net_salary / 1200000, 2),
             "deduction_details": deductions
         }
+
+    def calculate_freelancer_tax(self, gross_receipts_lakhs, regime=None):
+        """
+        Calculate tax for freelancers under Section 44ADA.
+
+        Args:
+            gross_receipts_lakhs (float): Gross receipts in lakhs
+            regime (str, optional): Tax regime to use. Defaults to current regime if None
+
+        Returns:
+            dict: Dictionary containing tax calculation details in lakhs
+        """
+        if regime is None:
+            regime = self.current_regime
+
+        # Convert lakhs to actual value
+        gross_receipts = gross_receipts_lakhs * 100000.0
+
+        # Under 44ADA, 50% is considered as expense deduction
+        presumptive_income = gross_receipts * 0.5
+
+        # Calculate deductions based on actual limits
+        deductions = {
+            'section_80c': 150000.0,
+            'section_80d_self': min(25000.0, presumptive_income),
+            'section_80d_parents': 50000.0,
+            'section_80d_health_checkup': 5000.0,
+            'hra': 60000.0
+        }
+
+        # Calculate total deductions
+        total_deductions = sum(deductions.values())
+
+        # Apply deductions to presumptive income
+        taxable_income = max(0.0, presumptive_income - total_deductions)
+
+        # Calculate tax on taxable income
+        tax = self.calculate_tax(taxable_income, regime)
+
+        # Add health and education cess (4%)
+        tax = tax * 1.04
+
+        # Calculate final values in lakhs
+        results = {
+            "gross_receipts_lakhs": round(gross_receipts_lakhs, 2),
+            "presumptive_income_lakhs": round(presumptive_income / 100000, 2),
+            "total_deductions_lakhs": round(total_deductions / 100000, 2),
+            "taxable_income_lakhs": round(taxable_income / 100000, 2),
+            "tax_lakhs": round(tax / 100000, 2),
+            "net_income_lakhs": round((gross_receipts - tax) / 100000, 2),
+            "monthly_take_home_lakhs": round((gross_receipts - tax) / 1200000, 2),
+            "expense_deduction_lakhs": round(gross_receipts * 0.5 / 100000, 2)
+        }
+
+        return results
 
     def find_gross_salary_for_target_take_home(self, target_monthly_take_home_lakhs, regime=None):
         """Find gross salary required to achieve target monthly take-home salary."""
@@ -188,8 +241,9 @@ class TaxCalculatorApp:
         print("1. Calculate Net Salary")
         print("2. Find Gross Salary for Target Take-Home")
         print("3. Detailed Deduction Breakdown")
-        print("4. Change Tax Regime")
-        print("5. Exit")
+        print("4. Calculate Freelancer Tax (Section 44ADA)")
+        print("5. Change Tax Regime")
+        print("6. Exit")
         print("=" * 50)
 
     def get_numeric_input(self, prompt, input_type=float, min_val=None, max_val=None):
@@ -272,6 +326,29 @@ class TaxCalculatorApp:
 
         print(f"\nTotal Deductions: ₹{round(total_deductions / 100000, 2)} Lakhs")
 
+    def calculate_freelancer_tax_menu(self):
+        """Interactive menu for calculating freelancer tax under Section 44ADA."""
+        print(f"\n💼 Freelancer Tax Calculation - Section 44ADA ({self.calculator.current_regime.title()} Regime)")
+        print("Note: This calculation assumes 50% of gross receipts as professional expenses.")
+
+        gross_receipts_lakhs = self.get_numeric_input("Enter Gross Annual Receipts (₹ in Lakhs): ", min_val=0)
+
+        result = self.calculator.calculate_freelancer_tax(gross_receipts_lakhs)
+
+        print("\n📊 Income & Tax Breakdown:")
+        labels = {
+            "gross_receipts_lakhs": "Gross Receipts",
+            "expense_deduction_lakhs": "Professional Expenses (50%)",
+            "presumptive_income_lakhs": "Presumptive Income",
+            "tax_lakhs": "Total Tax",
+            "net_income_lakhs": "Net Annual Income",
+            "monthly_take_home_lakhs": "Monthly Take-Home"
+        }
+
+        for key, value in result.items():
+            if key in labels:
+                print(f"{labels[key]}: ₹{value} Lakhs")
+
     def change_tax_regime(self):
         """Change the current tax regime."""
         print("\n🔄 Change Tax Regime")
@@ -300,7 +377,7 @@ class TaxCalculatorApp:
                 # Main Menu Loop
                 while True:
                     self.display_main_menu()
-                    choice = self.get_numeric_input("Enter your choice (1-5): ", int, 1, 5)
+                    choice = self.get_numeric_input("Enter your choice (1-6): ", int, 1, 6)
 
                     if choice == 1:
                         self.calculate_net_salary_menu()
@@ -309,8 +386,10 @@ class TaxCalculatorApp:
                     elif choice == 3:
                         self.detailed_deductions_menu()
                     elif choice == 4:
-                        self.change_tax_regime()
+                        self.calculate_freelancer_tax_menu()
                     elif choice == 5:
+                        self.change_tax_regime()
+                    elif choice == 6:
                         break
 
                     input("\n📌 Press Enter to continue...")
