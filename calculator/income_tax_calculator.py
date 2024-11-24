@@ -117,6 +117,8 @@ class IncomeTaxCalculator:
         # Calculate employer's PF contribution (12% of basic salary)
         employer_pf = basic_salary * Decimal('0.12')
 
+        # total pf
+        total_pf =  employee_pf +employer_pf
         # Deductions
         standard_deduction = Decimal('50000')  # Standard deduction allowed in both regimes
 
@@ -141,14 +143,13 @@ class IncomeTaxCalculator:
         tax = self.calculate_tax(taxable_income, regime)
 
         # Calculate net salary (only employee's PF is deducted from net salary)
-        net_salary = gross_salary - employee_pf - tax
+        net_salary = gross_salary - total_pf - tax
 
         return {
             "gross_salary_lakhs": gross_salary_lakhs,
             "basic_salary_lakhs": round(basic_salary / Decimal('100000'), 2),
             "hra_lakhs": round(hra / Decimal('100000'), 2),
-            "employee_pf_lakhs": round(employee_pf / Decimal('100000'), 2),
-            "employer_pf_lakhs": round(employer_pf / Decimal('100000'), 2),
+            "pf_lakhs": round(total_pf / Decimal('100000'), 2),
             "deductions_lakhs": round(deductions / Decimal('100000'), 2),
             "taxable_income_lakhs": round(taxable_income / Decimal('100000'), 2),
             "tax_lakhs": round(tax / Decimal('100000'), 2),
