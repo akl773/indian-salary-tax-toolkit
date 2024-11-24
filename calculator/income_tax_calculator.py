@@ -64,6 +64,10 @@ class IncomeTaxCalculator:
         Returns:
             Total tax including cess
         """
+        # Income tax rebate u/s 87A
+        if taxable_income < Decimal('500000'):
+            return Decimal('0')
+
         regime = regime or self.current_regime
         slabs = self._tax_slabs[regime].slabs
 
@@ -118,7 +122,7 @@ class IncomeTaxCalculator:
         employer_pf = basic_salary * Decimal('0.12')
 
         # total pf
-        total_pf =  employee_pf +employer_pf
+        total_pf = employee_pf + employer_pf
         # Deductions
         standard_deduction = Decimal('50000')  # Standard deduction allowed in both regimes
 
