@@ -16,16 +16,6 @@ This Python application is a comprehensive tool for calculating Indian income ta
 5. **Interactive Menu**:
    - User-friendly CLI for selecting tax regime, calculating tax, and more.
 
-## Installation
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd <repository-folder>
-   ```
-2. Run the application:
-   ```bash
-   python <script_name>.py
-   ```
 
 ## Usage
 1. Select a tax regime (Old or New).
